@@ -1,0 +1,46 @@
+diff --git a/testapp.c b/testapp.c
+index c21b357..e5c7e2e 100644
+--- a/testapp.c
++++ b/testapp.c
+@@ -779,7 +779,13 @@ static enum test_return test_vperror(void) {
+             "\nGot:       ``%s''\n", expected, buf);
+     */
+ 
++#ifdef __MVS__
++    /* z/OS perror() inserts an EDC diagnostic code before strerror(). */
++    const char *prefix = "Old McDonald had a farm.  EI EIO: ";
++    return strncmp(prefix, buf, strlen(prefix)) == 0 ? TEST_PASS : TEST_FAIL;
++#else
+     return strcmp(expected, buf) == 0 ? TEST_PASS : TEST_FAIL;
++#endif
+ }
+ 
+ static void send_ascii_command(const char *buf) {
+@@ -942,7 +948,12 @@ static enum test_return start_memcached_server(void) {
+ static enum test_return stop_memcached_server(void) {
+     close_conn();
+     if (server_pid != -1) {
++        int status;
+         assert(kill(server_pid, SIGTERM) == 0);
++        /* Reap timedrun so it cannot retain zopen's check-log pipe. */
++        while (waitpid(server_pid, &status, 0) == -1 && errno == EINTR) {
++        }
++        server_pid = -1;
+     }
+ 
+     return TEST_PASS;
+@@ -961,8 +972,12 @@ static enum test_return shutdown_memcached_server(void) {
+ 
+     close_conn();
+ 
+-    /* We set server_pid to -1 so that we don't later call kill() */
+-    if (kill(server_pid, 0) == 0) {
++    /*
++     * shutdown is asynchronous. Keep the PID while the timedrun wrapper is
++     * still alive so stop_server() can terminate and reap it before testapp
++     * exits. Otherwise its inherited log pipe keeps zopen build waiting.
++     */
++    if (kill(server_pid, 0) != 0) {
+         server_pid = -1;
+     }
+ 

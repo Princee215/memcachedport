@@ -1,0 +1,139 @@
+# bump: memcached-version /MEMCACHED_VERSION="(.*)"/ https://github.com/memcached/memcached.git|semver:*
+MEMCACHED_VERSION="1.6.45"
+
+###
+### Build control file for the memcached port
+###
+
+###
+### Required Environment Variables
+###
+export ZOPEN_PROJECT_NAME="memcached"
+export ZOPEN_BUILD_LINE="STABLE"
+export ZOPEN_STABLE_URL="https://github.com/memcached/memcached.git"
+export ZOPEN_STABLE_TAG="1.6.45"
+export ZOPEN_STABLE_DEPS="libevent make automake make autoconf m4 pkgconfig bash grep perl"
+export ZOPEN_DEV_URL="https://github.com/memcached/memcached.git"
+export ZOPEN_DEV_DEPS="libevent make"
+export ZOPEN_CATEGORIES="database"
+export ZOPEN_RUNTIME_DEPS="libevent"
+# The upstream `make test` target continues past the native test suite into
+# Perl integration tests. Those tests start daemons with options unavailable on
+# z/OS and can leave the build waiting after testapp's 56 TAP cases complete.
+# Run the supported native checks through a dedicated test driver instead.
+# zopen runs checks from the extracted memcached source directory.
+export ZOPEN_CHECK="../run-tests.sh"
+export ZOPEN_CHECK_OPTS=""
+export ZOPEN_BOOTSTRAP="./autogen.sh"
+# export ZOPEN_SYSTEM_PREREQ="zos25" # optional system pre-req (default=zos25)
+
+
+###
+### Build settings (Port type: BUILD, Build system: GNU Make)
+###
+### Optional Settings for GNU Make build system (Autotools)
+#export ZOPEN_EXTRA_CONFIGURE_OPTS="--with-ssl" # Add any additional configure options here
+#export ZOPEN_EXTRA_CFLAGS="-mzos-target=zosv2r5" # Add any additional compiler options here
+
+
+###
+### Required user-supplied functions
+###
+
+zopen_check_results() {
+  dir="$1"
+  pfx="$2"
+  chk="$1/$2_check.log"
+  # testapp emits TAP. Its plan is the expected native test count; count TAP
+  # failures independently so a partial or failed run cannot be reported as a
+  # successful check.
+  total_tests=$(awk '/^1\.\.[0-9]+$/ { sub(/^1\.\./, ""); total = $0 } END { print total + 0 }' "$chk")
+  actual_failures=$(awk '/^not ok [0-9]+/ { failures++ } END { print failures + 0 }' "$chk")
+
+  echo "actualFailures:${actual_failures}"
+  echo "totalTests:${total_tests}"
+  echo "expectedFailures:0"
+  echo "expectedTotalTests:${total_tests}"
+}
+
+zopen_get_version() {
+  echo "$MEMCACHED_VERSION"
+}
+
+
+###
+### Custom Build Logic (if applicable)
+###
+# For libraries, this hook exports variables for other ports to use.
+#zopen_append_to_env() {
+#  cat <<END
+#if [ ! -z "\$ZOPEN_IN_ZOPEN_BUILD" ]; then
+#  export ZOPEN_EXTRA_CFLAGS="\${ZOPEN_EXTRA_CFLAGS} -I\${PWD}/include"
+#  export ZOPEN_EXTRA_CXXFLAGS="\${ZOPEN_EXTRA_CXXFLAGS} -I\${PWD}/include"
+#  export ZOPEN_EXTRA_LDFLAGS="\${ZOPEN_EXTRA_LDFLAGS} -L\${PWD}/lib"
+#  export ZOPEN_EXTRA_LIBS="\${ZOPEN_EXTRA_LIBS} -lmemcached"
+#fi
+#END
+#}
+
+###
+### Optional User-Supplied Hooks (uncomment to use)
+###
+
+#zopen_append_to_env() {
+#  ## This function runs as part of generation of the .env file. The output of the
+#  ## function is appended to .env.
+#}
+#
+#zopen_append_to_setup(){
+#  ## This function runs as part of generation of the setup.sh file. The output of
+#  ## the function is appended to setup.sh.
+#}
+#
+#zopen_append_to_validate_install(){
+#  ## This function runs as part of generation of the install_test.sh file. The
+#  ## output of the function is appended to install_test.sh script.
+#}
+#
+#zopen_install_caveats(){
+#  ## This function is run post install. All stdout messages are captured and
+#  ## added to the metadata.json as installation caveats.
+#}
+#
+#zopen_init(){
+#  ## This function runs after code is downloaded and patched but before the code
+#  ## is built.
+#}
+#
+#zopen_post_buildenv(){
+#  ## This function runs after the 'buildenv' is processed.
+#}
+#
+#zopen_pre_build(){
+#  ## This function runs before the 'make' step of the build is run.
+#}
+#
+#zopen_pre_check(){
+#  ## This function runs before the 'check' step of the build is run.
+#}
+#
+#zopen_pre_configure(){
+#  ## This function runs before the 'configure' step of the build is run.
+#}
+#
+#zopen_pre_install(){
+#  ## This function runs before the 'install' step of the build is run.
+#}
+#
+#zopen_post_install(){
+#  ## This function runs after the 'install' step of the build is run.
+#}
+#
+#zopen_pre_patch(){
+#  ## This function runs before the 'patch' step of the build is run.
+#}
+#
+#zopen_pre_terminate(){
+#  ## This function runs before 'zopen build' terminates.
+#}
+
