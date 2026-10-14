@@ -1,0 +1,10 @@
+diff --git a/util.h b/util.h
+index 99defd6..95b476b 100644
+--- a/util.h
++++ b/util.h
+@@ -1,4 +1,5 @@
+ #include "config.h"
++#include <time.h>
+ 
+ /* fast-enough functions for uriencoding strings. */
+ void uriencode_init(void);

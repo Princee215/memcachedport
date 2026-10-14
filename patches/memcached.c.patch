@@ -1,0 +1,27 @@
+diff --git a/memcached.c b/memcached.c
+index 8611661..b7a2b70 100644
+--- a/memcached.c
++++ b/memcached.c
+@@ -44,7 +44,9 @@
+ #include <string.h>
+ #include <time.h>
+ #include <assert.h>
++#ifndef __MVS__
+ #include <sysexits.h>
++#endif
+ #include <stddef.h>
+ 
+ #ifdef HAVE_GETOPT_LONG
+@@ -61,6 +63,12 @@
+ #include <sys/sysctl.h>
+ #endif
+ 
++#ifdef __MVS__
++#define EX_USAGE 64 /* command line usage error */
++#define EX_NOUSER 67 /* addressee unknown */
++#define EX_OSERR 71 /* system error (e.g., can't fork) */
++#endif
++
+ /*
+  * forward declarations
+  */
